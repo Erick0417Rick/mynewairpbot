@@ -3,17 +3,22 @@ import json
 import re
 import streamlit as st
 from anthropic import Anthropic
-from dotenv import load_dotenv
-
-# --- 환경 변수 로드 ---
-load_dotenv()
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
+# --- 환경 변수 로드 (로컬 .env + Streamlit Secrets 둘 다 지원) ---
+try:
+    # Streamlit Cloud
+    ANTHROPIC_API_KEY = st.secrets["ANTHROPIC_API_KEY"]
+except Exception:
+    # 로컬 개발 환경
+    from dotenv import load_dotenv
+    load_dotenv()
+    ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 
 if not ANTHROPIC_API_KEY:
-    st.error("❌ .env 파일에 ANTHROPIC_API_KEY를 넣어주세요.")
+    st.error("❌ 환경 변수(ANTHROPIC_API_KEY)를 찾을 수 없습니다.")
     st.stop()
 
 client = Anthropic(api_key=ANTHROPIC_API_KEY)
+
 
 # --- 파일 경로 ---
 LOREBOOK_FILE = "lorebook.json"
