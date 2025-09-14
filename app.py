@@ -1,23 +1,60 @@
+
 import os
 import json
 import re
 import streamlit as st
 from anthropic import Anthropic
-# --- 환경 변수 로드 (로컬 .env + Streamlit Secrets 둘 다 지원) ---
-try:
-    # Streamlit Cloud
-    ANTHROPIC_API_KEY = st.secrets["ANTHROPIC_API_KEY"]
-except Exception:
-    # 로컬 개발 환경
-    from dotenv import load_dotenv
-    load_dotenv()
-    ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
+
+# --- 환경 변수 로드 (따옴표 자동 처리) ---
+def get_api_key():
+    # Streamlit Secrets 시도
+    try:
+        if hasattr(st, 'secrets') and 'ANTHROPIC_API_KEY' in st.secrets:
+            key = st.secrets['ANTHROPIC_API_KEY']
+            # 따옴표 제거 (있는 경우)
+            if isinstance(key, str):
+                key = key.strip().strip('"').strip("'")
+            return key
+    except Exception:
+        pass
+    
+    # 로컬 환경 변수 시도
+    try:
+        from dotenv import load_dotenv
+        load_dotenv()
+        key = os.getenv("ANTHROPIC_API_KEY")
+        if key:
+            key = key.strip().strip('"').strip("'")
+            return key
+    except Exception:
+        pass
+    
+    return None
+
+ANTHROPIC_API_KEY = get_api_key()
 
 if not ANTHROPIC_API_KEY:
-    st.error("❌ 환경 변수(ANTHROPIC_API_KEY)를 찾을 수 없습니다.")
+    st.error("""
+    ❌ ANTHROPIC_API_KEY를 찾을 수 없습니다.
+    
+    해결 방법:
+    1. Streamlit Cloud: Settings → Secrets에 추가:
+       ANTHROPIC_API_KEY = "sk-ant-api03-..."
+    
+    2. 로컬: .env 파일에 추가:
+       ANTHROPIC_API_KEY="sk-ant-api03-..."
+    """)
     st.stop()
 
-client = Anthropic(api_key=ANTHROPIC_API_KEY)
+# 클라이언트 초기화
+try:
+    client = Anthropic(api_key=ANTHROPIC_API_KEY)
+    st.success("✅ API 연결 성공")
+except Exception as e:
+    st.error(f"❌ API 연결 실패: {e}")
+    st.stop()
+
+# --- 나머지 코드는 동일하게 유지 ---
 
 
 # --- 파일 경로 ---
